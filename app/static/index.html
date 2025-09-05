@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gemini Chatbot</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+    }
+
+    #chat {
+      border: 1px solid #ccc;
+      padding: 10px;
+      height: 400px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      white-space: pre-wrap;
+    }
+
+    .user {
+      font-weight: bold;
+      color: blue;
+    }
+
+    .bot {
+      font-weight: bold;
+      color: green;
+    }
+
+    .msg {
+      margin: 5px 0;
+    }
+
+    #spinner {
+      display: none;
+      margin: 10px 0;
+    }
+
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    pre {
+      background-color: #f8f8f8;
+      border: 1px solid #ddd;
+      padding: 8px;
+      margin-top: 5px;
+      font-size: 0.85em;
+      overflow-x: auto;
+      display: none;
+    }
+
+    .toggle-button {
+      background: none;
+      border: none;
+      color: #007BFF;
+      text-decoration: underline;
+      cursor: pointer;
+      padding: 0;
+      font-size: 0.9em;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Gemini Chatbot</h2>
+  <div id="chat"></div>
+  <input type="text" id="input" placeholder="Type your message..." style="width: 80%;" />
+  <button onclick="sendMessage()">Send</button>
+  <div id="spinner"><div class="loader"></div> <span>Thinking...</span></div>
+
+  <script>
+  function toggleVisibility(id) {
+    const elem = document.getElementById(id);
+    if (elem.style.display === "none") {
+      elem.style.display = "block";
+    } else {
+      elem.style.display = "none";
+    }
+  }
+
+  function scrollToElementById(id) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  function createVerdictHeader(label, verdict) {
+    const action = verdict.action || "unknown";
+    const category = verdict.category || "unknown";
+    let color = "gray";
+    if (action === "allow" && category === "benign") color = "green";
+    else if (action === "block" && category === "malicious") color = "red";
+
+    const text = `${label}: ${action.toUpperCase()} (${category})`;
+    return `<div style="color:${color}; font-weight:bold;">${text}</div>`;
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById("input");
+    const chat = document.getElementById("chat");
+    const spinner = document.getElementById("spinner");
+    const message = input.value.trim();
+    if (!message) return;
+
+    chat.innerHTML += `<div class="msg user">You: ${message}</div>`;
+    input.value = "";
+    spinner.style.display = "block";
+
+    try {
+      const res = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+
+      const data = await res.json();
+      spinner.style.display = "none";
+
+      // If blocked before Gemini
+      if (data.error && !data.response) {
+        const blockId = `block-${Date.now()}`;
+        chat.innerHTML += `<div id="${blockId}" class="msg bot" style="color: red;">❌ ${data.error}</div>`;
+
+        if (data.verdict) {
+          const verdictId = `verdict-${Date.now()}`;
+          chat.innerHTML += createVerdictHeader("Input Scan", data.verdict);
+          chat.innerHTML += `
+            <button class="toggle-button" onclick="toggleVisibility('${verdictId}')">
+              Show/Hide Input Prisma Verdict
+            </button>
+            <pre id="${verdictId}">${JSON.stringify(data.verdict, null, 2)}</pre>`;
+        }
+
+        chat.scrollTop = chat.scrollHeight;
+        scrollToElementById(blockId);
+        return;
+      }
+
+      // Gemini response
+      if (data.response) {
+        chat.innerHTML += `<div class="msg bot">🤖 ${data.response}</div>`;
+      }
+
+      // Input Verdict
+      if (data.input_verdict) {
+        const inputVerdictId = `input-verdict-${Date.now()}`;
+        chat.innerHTML += createVerdictHeader("Input Scan", data.input_verdict);
+        chat.innerHTML += `
+          <button class="toggle-button" onclick="toggleVisibility('${inputVerdictId}')">
+            Show/Hide Input Scan
+          </button>
+          <pre id="${inputVerdictId}">${JSON.stringify(data.input_verdict, null, 2)}</pre>`;
+      }
+
+      // Output Verdict
+      if (data.output_verdict) {
+        const outputVerdictId = `output-verdict-${Date.now()}`;
+        chat.innerHTML += createVerdictHeader("Output Scan", data.output_verdict);
+        chat.innerHTML += `
+          <button class="toggle-button" onclick="toggleVisibility('${outputVerdictId}')">
+            Show/Hide Output Scan
+          </button>
+          <pre id="${outputVerdictId}">${JSON.stringify(data.output_verdict, null, 2)}</pre>`;
+      }
+
+      chat.scrollTop = chat.scrollHeight;
+
+    } catch (err) {
+      spinner.style.display = "none";
+      chat.innerHTML += `<div class="msg bot" style="color: red;">Error: ${err.message}</div>`;
+    }
+  }
+</script>
+
+</body>
+</html>

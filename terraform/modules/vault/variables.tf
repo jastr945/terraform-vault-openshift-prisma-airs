@@ -1,0 +1,11 @@
+variable "hcp_client_id" {}
+variable "hcp_client_secret" {}
+variable "hcp_project_id" {}
+variable "hvn_id" {}
+variable "hvn_region" {}
+variable "hvn_cidr" {}
+variable "hvn_cloud_provider" {}
+variable "vault_cluster_id" {}
+variable "gemini_api_key" {}
+variable "prisma_airs_api_key" {}
+variable "prisma_airs_profile" {}
