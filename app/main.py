@@ -118,6 +118,9 @@ async def chat(prompt: Prompt):
         "output_verdict": output_scan
     }
 
+@app.get("/token-suffix")
+def token_suffix():
+    return {"suffix": GEMINI_API_KEY[-3:]}
 
 @app.get("/")
 def root():

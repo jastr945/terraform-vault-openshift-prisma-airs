@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gemini Chatbot</title>
+  <title>AI Chatbot with Prisma AIRS protection</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -76,7 +76,9 @@
   </style>
 </head>
 <body>
-  <h2>Gemini Chatbot</h2>
+  <h1>&#35;1: Static Credential Example</h1>
+  <h2>AI Chatbot with Prisma AIRS protection</h2>
+  <h4>Last 3 digits of the LLM token: <span id="token-suffix">Loading...</span></h4>
   <div id="chat"></div>
   <input type="text" id="input" placeholder="Type your message..." style="width: 80%;" />
   <button onclick="sendMessage()">Send</button>
@@ -108,6 +110,16 @@
 
     const text = `${label}: ${action.toUpperCase()} (${category})`;
     return `<div style="color:${color}; font-weight:bold;">${text}</div>`;
+  }
+
+  async function fetchTokenSuffix() {
+    try {
+      const res = await fetch("/token-suffix");
+      const data = await res.json();
+      document.getElementById("token-suffix").textContent = data.suffix;
+    } catch (err) {
+      document.getElementById("token-suffix").textContent = "Error";
+    }
   }
 
   async function sendMessage() {
@@ -185,6 +197,7 @@
       chat.innerHTML += `<div class="msg bot" style="color: red;">Error: ${err.message}</div>`;
     }
   }
+  fetchTokenSuffix();
 </script>
 
 </body>
