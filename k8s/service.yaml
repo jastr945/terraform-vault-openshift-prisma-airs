@@ -1,14 +1,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: chatbot-service
+  name: ai-chatbot-svc
   labels:
-    app: chatbot
+    app: ai-chatbot
 spec:
+  type: ClusterIP
   selector:
-    app: chatbot
+    app: ai-chatbot
   ports:
-    - protocol: TCP
-      port: 80 
+    - name: http
+      port: 80
       targetPort: 5000
-  type: ClusterIP 
+

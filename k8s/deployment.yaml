@@ -1,34 +1,52 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: chatbot
+  name: ai-chatbot
+  labels:
+    app: ai-chatbot
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: chatbot
+      app: ai-chatbot
   template:
     metadata:
       labels:
-        app: chatbot
+        app: ai-chatbot
     spec:
-      serviceAccountName: chatbot-sa
       containers:
-        - name: chatbot
-          image: your-registry/chatbot:latest
+        - name: ai-chatbot
+          # REPLACE this with your pushed image (set via Terraform or replace here)
+          image: REPLACE_WITH_REGISTRY/ai-chatbot:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
-          envFrom:
-            - secretRef:
-                name: chatbot-env-secrets
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: chatbot-service
-spec:
-  selector:
-    app: chatbot
-  ports:
-    - port: 80
-      targetPort: 5000
+          env:
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: chatbot-secrets
+                  key: GEMINI_API_KEY
+            - name: PRISMA_AIRS_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: chatbot-secrets
+                  key: PRISMA_AIRS_API_KEY
+            - name: PRISMA_AIRS_PROFILE
+              valueFrom:
+                secretKeyRef:
+                  name: chatbot-secrets
+                  key: PRISMA_AIRS_PROFILE
+          readinessProbe:
+            httpGet:
+              path: /token-suffix
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /token-suffix
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+
