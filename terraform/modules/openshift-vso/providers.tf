@@ -2,6 +2,7 @@
 provider "kubernetes" {
   host                   = var.openshift_host
   token                  = var.openshift_token
+  cluster_ca_certificate = file("${path.module}/ca.crt")
 }
 
 provider "helm" {

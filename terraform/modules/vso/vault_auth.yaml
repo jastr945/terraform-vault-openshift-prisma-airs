@@ -1,8 +1,0 @@
-apiVersion: secrets.hashicorp.com/v1alpha1
-kind: VaultAuth
-metadata:
-  name: chatbot-auth
-  namespace: pjastr-dev
-spec:
-  path: "secret/data/chatbot"
-  type: "kubernetes"

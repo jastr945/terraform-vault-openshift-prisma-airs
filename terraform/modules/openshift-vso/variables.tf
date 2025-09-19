@@ -1,10 +1,9 @@
 variable "openshift_token" {}
 variable "openshift_host" {}
 
-variable "namespace" {
+variable "openshift_namespace" {
   description = "Namespace to install VSO and Vault auth resources"
   type        = string
-  default     = "default"
 }
 
 variable "vault_addr" {
@@ -18,8 +17,34 @@ variable "vault_admin_token" {
   sensitive   = true
 }
 
+variable "vault_namespace" {
+  type        = string
+}
+
+variable "vault_transit_mount_path" {
+  type        = string
+}
+
+variable "vault_transit_key_name" {
+  type        = string
+}
+
 variable "vso_chart_version" {
   description = "Vault Secrets Operator Helm chart version (optional)"
   type        = string
   default     = "0.9.0"
+}
+
+variable "image" {
+  description = "Full container image to run (registry/name:tag)"
+  type        = string
+}
+
+variable "replicas" {
+  type    = number
+  default = 1
+}
+
+variable "app_name" {
+  type    = string
 }

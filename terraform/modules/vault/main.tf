@@ -46,3 +46,28 @@ resource "vault_kv_secret_v2" "gemini_key" {
     PRISMA_AIRS_PROFILE = var.prisma_airs_profile
   })
 }
+
+resource "random_string" "id" {
+  length  = 3
+  lower   = true
+  upper   = false
+  special = false
+}
+
+locals  {
+  random_id = random_string.id.result
+}
+
+resource "vault_mount" "transit" {
+  namespace = var.vault_namespace
+  path      = "transit-${local.random_id}"
+  type      = "transit"
+  description = "Creates an Encryption Keyring on a Transit Secret Backend for Vault."
+}
+
+resource "vault_transit_secret_backend_key" "transit" {
+  backend          = vault_mount.transit.path
+  namespace        = var.vault_namespace
+  name             = "vso-cache-${local.random_id}"
+  deletion_allowed = true
+}

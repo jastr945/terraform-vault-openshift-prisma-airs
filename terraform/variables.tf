@@ -18,6 +18,9 @@ variable "hvn_cloud_provider" {
 variable "vault_cluster_id" {
   default = "vault-dedicated"
 }
+variable "vault_namespace" {
+  default = "admin"
+}
 variable "gemini_api_key" {
     description = "LLM API Key"
     type = string
@@ -32,7 +35,12 @@ variable "prisma_airs_profile" {
 }
 variable "openshift_token" {}
 variable "openshift_host" {}
-variable "openshift_namespace" {}
+variable "openshift_namespace" {
+  default = "default"
+}
 variable "app_image" {
   default = "gemini-chatbot"
+}
+variable "app_name" {
+  default = "ai-chatbot"
 }
