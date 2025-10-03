@@ -24,7 +24,7 @@ With this deployment pattern, teams gain a fully automated, secure, and scalable
 ## Prerequisites
 
 - HCP account and Vault CLI access
-- Openshift cluster and CLI access
+- Openshift cluster and CLI access (`oc` command line tool)
 - Docker
 - Terraform v1.13.3 or later
 - Helm
