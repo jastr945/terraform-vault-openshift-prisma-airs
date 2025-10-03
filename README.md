@@ -1,5 +1,5 @@
 # terraform-vault-openshift-prisma-airs
-Secure, Terraform-deployed AI workloads on AWS Openshift, with secrets managed via HCP Vault Dedicated and delivered using Vault Secrets Operator. Security guardrails provided by Prisma AIRS.
+Secure, Terraform-deployed AI workloads on Openshift, with secrets managed via HCP Vault Dedicated and delivered using Vault Secrets Operator. Security guardrails provided by Prisma AIRS.
 
 ## Why This Matters
 
@@ -231,8 +231,6 @@ You should see the secrets stored in Vault for the chatbot app.
 
 
 ## Deploy the App
-
-Edit the AWS account in the image name if needed, then deploy:
 
 ```sh
 oc apply -f deployment.yaml
