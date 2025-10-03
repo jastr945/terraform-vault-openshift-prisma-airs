@@ -28,6 +28,7 @@ resource "hcp_vault_cluster_admin_token" "admin" {
 provider "vault" {
   address = hcp_vault_cluster.vault.vault_public_endpoint_url
   token   = hcp_vault_cluster_admin_token.admin.token
+  namespace = var.vault_namespace
 }
 
 resource "vault_mount" "kvv2" {
@@ -47,27 +48,41 @@ resource "vault_kv_secret_v2" "gemini_key" {
   })
 }
 
-resource "random_string" "id" {
-  length  = 3
-  lower   = true
-  upper   = false
-  special = false
+/* Kubernetes Auth Method Configuration */
+
+resource "vault_auth_backend" "kubernetes" {
+  type = "kubernetes"
+  path = "kubernetes"
+  description = "Enables the Kubernetes authentication method in Vault"
 }
 
-locals  {
-  random_id = random_string.id.result
+resource "vault_policy" "ai_chatbot_policy" {
+  name     = "ai-chatbot-policy"
+  policy   = <<EOT
+# Allows to read K/V secrets 
+path "kv/data/chatbot" {
+  capabilities = ["read", "list", "subscribe"]
+  subscribe_event_types = ["*"]
 }
 
-resource "vault_mount" "transit" {
-  namespace = var.vault_namespace
-  path      = "transit-${local.random_id}"
-  type      = "transit"
-  description = "Creates an Encryption Keyring on a Transit Secret Backend for Vault."
+# Allows reading K/V secret versions and metadata
+path "kv/metadata/chatbot" {
+  capabilities = ["list", "read"]
 }
 
-resource "vault_transit_secret_backend_key" "transit" {
-  backend          = vault_mount.transit.path
-  namespace        = var.vault_namespace
-  name             = "vso-cache-${local.random_id}"
-  deletion_allowed = true
+path "sys/events/subscribe/kv*" {
+  capabilities = ["read"]
+}
+EOT
+}
+
+resource "vault_kubernetes_auth_backend_role" "my_app_role" {
+  backend                          = vault_auth_backend.kubernetes.path
+  role_name                        = "ai-chatbot-role"
+  bound_service_account_names      = ["chatbot"] # to be built in k8s-vso module
+  bound_service_account_namespaces = ["ai-chatbot"] # to be built in k8s-vso module
+  token_policies                   = [vault_policy.ai_chatbot_policy.name]
+  token_ttl                        = 3600      # 1 hour
+  token_type                       = "default"
+  audience                         = "https://kubernetes.default.svc"
 }

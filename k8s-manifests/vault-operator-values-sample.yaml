@@ -1,0 +1,8 @@
+defaultVaultConnection:
+  enabled: true
+  address: "https://vault-dedicated-public-...hashicorp.cloud:8200" #changeme
+  caCertSecret: "vault-cacert"
+  tlsServerName: "vault-dedicated-public-....hashicorp.cloud" #changeme
+  skipTLSVerify: false
+defaultAuthMethod:
+  enabled: false

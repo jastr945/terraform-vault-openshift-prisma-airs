@@ -33,14 +33,3 @@ variable "prisma_airs_profile" {
     description = "Prisma AIRS deployment profile"
     type = string
 }
-variable "openshift_token" {}
-variable "openshift_host" {}
-variable "openshift_namespace" {
-  default = "default"
-}
-variable "app_image" {
-  default = "gemini-chatbot"
-}
-variable "app_name" {
-  default = "ai-chatbot"
-}

@@ -36,4 +36,5 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-terraform/modules/openshift-vso/ca.crt
+vault-operator-values.yaml
+vault-ca.pem

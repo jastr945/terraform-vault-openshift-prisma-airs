@@ -1,0 +1,72 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault-sa
+  namespace: ai-chatbot
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vault-auth-secret
+  annotations:
+    kubernetes.io/service-account.name: vault-sa
+  namespace: ai-chatbot
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: vault-auth-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: vault-sa
+    namespace: ai-chatbot
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: vault-auth
+  namespace: ai-chatbot
+spec:
+  namespace: admin
+  method: kubernetes
+  mount: kubernetes
+  kubernetes:
+    role: ai-chatbot-role
+    serviceAccount: chatbot
+    audiences:
+      - https://kubernetes.default.svc
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: ai-chatbot-secret-gemini
+  namespace: ai-chatbot
+spec:
+  namespace: admin
+  type: kv-v2
+  mount: kv
+  path: chatbot
+  destination:
+    name: chatbotkv
+    create: true
+  refreshAfter: 2s
+  vaultAuthRef: vault-auth
+  syncConfig:
+    instantUpdates: true
+  rolloutRestartTargets:
+    - kind: Deployment
+      name: ai-chatbot
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chatbot
+  namespace: ai-chatbot
+  annotations:
+    vault.hashicorp.com/alias-metadata-AppName: "chatbot"

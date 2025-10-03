@@ -122,6 +122,10 @@ async def chat(prompt: Prompt):
 def token_suffix():
     return {"suffix": GEMINI_API_KEY[-3:]}
 
+@app.get("/healthcheck")
+def healthcheck():
+    return {"status": "ok"}
+
 @app.get("/")
 def root():
     return FileResponse("static/index.html")
