@@ -15,7 +15,8 @@ With this deployment pattern, teams gain a fully automated, secure, and scalable
 
 | Component                        | Purpose                            |
 | -------------------------------- | ---------------------------------- |
-| **Python app (FastAPI)**         | Gemini-based chatbot with built-in guardrails by Palo Alto Networks Prisma AIRS|
+| **AI Chatbot (FastAPI)**         | Gemini-based chatbot with built-in guardrails by Palo Alto Networks Prisma AIRS|
+| **AI Agent (FastAPI)**         | Gemini-based agent leveraging Terraform MCP with built-in guardrails by Palo Alto
 | **Openshift**                    | Runs your app as a pod             |
 | **HCP Vault Dedicated**          | Stores secrets in `kv-v2`          |
 | **Vault Secrets Operator (VSO)** | Pulls secrets into Openshift       |
@@ -85,7 +86,7 @@ Build a Docker image and push it to the OpenShift Integrated Image Registry:
 
 ```sh
 # Navigate to the app directory
-cd ../app
+cd ../app/ai-chatbot
 
 # Check if the registry route exists
 oc get route -n openshift-image-registry

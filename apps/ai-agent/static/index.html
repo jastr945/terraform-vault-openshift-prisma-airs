@@ -23,7 +23,7 @@
   <h4>Last 3 digits of the LLM token: <span id="token-suffix">Loading...</span></h4>
   <div id="chat"></div>
   <input type="text" id="input" placeholder="Ask about Terraform best practices..." style="width: 80%;" />
-  <button onclick="sendMessage()">Send</button>
+  <button onclick="sendMessageStream()">Send</button>
   <div id="spinner"><div class="loader"></div> <span>Thinking...</span></div>
 
   <script>
@@ -55,60 +55,42 @@
     } catch { document.getElementById("token-suffix").textContent = "Error"; }
   }
 
-  async function sendMessage() {
+  async function sendMessageStream() {
     const input = document.getElementById("input");
     const chat = document.getElementById("chat");
-    const spinner = document.getElementById("spinner");
     const message = input.value.trim();
     if (!message) return;
+    input.value = "";
 
     chat.innerHTML += `<div class="msg user">You: ${message}</div>`;
-    input.value = "";
-    spinner.style.display = "block";
 
-    try {
-      const res = await fetch("/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
-      });
-      const data = await res.json();
-      spinner.style.display = "none";
+    const evtSource = new EventSource(`/chat-stream?message=${encodeURIComponent(message)}`);
+    
+    evtSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
 
-      if (data.error && !data.response) {
-        const blockId = `block-${Date.now()}`;
-        chat.innerHTML += `<div id="${blockId}" class="msg bot" style="color: red;">❌ ${data.error}</div>`;
+        if (data.type === "log") {
+        chat.innerHTML += `<div class="msg bot" style="color: gray;">${data.text}</div>`;
+        } else if (data.type === "mcp") {
+        chat.innerHTML += `<div class="msg bot" style="color: purple;">${data.text}</div>`;
+        } else if (data.type === "gemini") {
+        chat.innerHTML += `<div class="msg bot" style="color: green;">${data.text}</div>`;
+        } else if (data.type === "error") {
+        chat.innerHTML += `<div class="msg bot" style="color: red;">${data.text}</div>`;
         if (data.verdict) {
-          const verdictId = `verdict-${Date.now()}`;
-          chat.innerHTML += createVerdictHeader("Input Scan", data.verdict);
-          chat.innerHTML += `<button class="toggle-button" onclick="toggleVisibility('${verdictId}')">Show/Hide Input Prisma Verdict</button><pre id="${verdictId}">${JSON.stringify(data.verdict, null, 2)}</pre>`;
+            const verdictId = `verdict-${Date.now()}`;
+            chat.innerHTML += `<pre id="${verdictId}">${JSON.stringify(data.verdict,null,2)}</pre>`;
+        }
         }
         chat.scrollTop = chat.scrollHeight;
-        scrollToElementById(blockId);
-        return;
-      }
+    };
 
-      if (data.response) chat.innerHTML += `<div class="msg bot">🤖 ${data.response}</div>`;
-      if (data.terraform_context) {
-        const tfId = `tfctx-${Date.now()}`;
-        chat.innerHTML += `<button class="toggle-button" onclick="toggleVisibility('${tfId}')">Show/Hide Terraform MCP Context</button><pre id="${tfId}">${data.terraform_context}</pre>`;
-      }
-      if (data.input_verdict) {
-        const inputVerdictId = `input-verdict-${Date.now()}`;
-        chat.innerHTML += createVerdictHeader("Input Scan", data.input_verdict);
-        chat.innerHTML += `<button class="toggle-button" onclick="toggleVisibility('${inputVerdictId}')">Show/Hide Input Scan</button><pre id="${inputVerdictId}">${JSON.stringify(data.input_verdict, null, 2)}</pre>`;
-      }
-      if (data.output_verdict) {
-        const outputVerdictId = `output-verdict-${Date.now()}`;
-        chat.innerHTML += createVerdictHeader("Output Scan", data.output_verdict);
-        chat.innerHTML += `<button class="toggle-button" onclick="toggleVisibility('${outputVerdictId}')">Show/Hide Output Scan</button><pre id="${outputVerdictId}">${JSON.stringify(data.output_verdict, null, 2)}</pre>`;
-      }
-      chat.scrollTop = chat.scrollHeight;
-    } catch (err) {
-      spinner.style.display = "none";
-      chat.innerHTML += `<div class="msg bot" style="color: red;">Error: ${err.message}</div>`;
-    }
-  }
+    evtSource.onerror = function(err) {
+        chat.innerHTML += `<div class="msg bot" style="color:red;">Stream error</div>`;
+        evtSource.close();
+    };
+}
+
   fetchTokenSuffix();
   </script>
 </body>
