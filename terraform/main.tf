@@ -13,3 +13,10 @@ module "vault" {
   prisma_airs_api_key = var.prisma_airs_api_key
   prisma_airs_profile = var.prisma_airs_profile
 }
+
+module "postgres" {
+  source              = "./modules/postgres"
+  db_name            = var.db_name
+  db_username        = var.db_username
+  db_password        = var.db_password
+}

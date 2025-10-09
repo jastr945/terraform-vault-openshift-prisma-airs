@@ -17,10 +17,10 @@ With this deployment pattern, teams gain a fully automated, secure, and scalable
 | -------------------------------- | ---------------------------------- |
 | **AI Chatbot (FastAPI)**         | Gemini-based chatbot with built-in guardrails by Palo Alto Networks Prisma AIRS|
 | **AI Agent (FastAPI)**         | Gemini-based agent leveraging Terraform MCP with built-in guardrails by Palo Alto
-| **Openshift**                    | Runs your app as a pod             |
+| **Openshift**                    | Runs your apps as a pods             |
 | **HCP Vault Dedicated**          | Stores secrets in `kv-v2`          |
 | **Vault Secrets Operator (VSO)** | Pulls secrets into Openshift       |
-| **Terraform**                    | Automates HCP Vault + Kubernetes setup |
+| **Terraform**                    | Automates HCP Vault setup |
 
 ## Prerequisites
 

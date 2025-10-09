@@ -86,7 +86,7 @@
     };
 
     evtSource.onerror = function(err) {
-        chat.innerHTML += `<div class="msg bot" style="color:red;">Stream error</div>`;
+        chat.innerHTML += `<div class="msg bot" style="color:black;">End of stream.</div>`;
         evtSource.close();
     };
 }
