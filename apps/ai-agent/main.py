@@ -257,7 +257,7 @@ async def chat_stream(message: str):
         
 
         # yield f"data:{json.dumps({'type':'log', 'text': f'Full prompt: {full_prompt}...'})}\n\n"
-        yield f"data:{json.dumps({'type':'log','text':'Generating Gemini response...'})}\n\n"
+        yield f"data:{json.dumps({'type':'log','text':'Generating LLM response...'})}\n\n"
 
         try:
             # Run Gemini in a separate thread to avoid blocking
