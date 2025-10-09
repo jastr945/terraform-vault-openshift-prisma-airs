@@ -1,5 +1,6 @@
 import os
 import asyncio
+import asyncpg
 import uvicorn
 import requests
 import subprocess
@@ -26,6 +27,12 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 PRISMA_AIRS_API_KEY = os.getenv("PRISMA_AIRS_API_KEY")
 PRISMA_AIRS_PROFILE = os.getenv("PRISMA_AIRS_PROFILE")
 MCP_HTTP_URL = os.getenv("MCP_HTTP_URL", "http://terraform-mcp:8080/mcp")
+
+AWS_DB_HOST = os.getenv("AWS_DB_HOST")
+AWS_DB_PORT = int(os.getenv("AWS_DB_PORT", 5432))
+AWS_DB_NAME = os.getenv("AWS_DB_NAME", "terraform_backend")
+AWS_DB_USER = os.getenv("AWS_DB_USER", "aiagent")
+AWS_DB_PASSWORD = os.getenv("AWS_DB_PASSWORD")
 
 if not GEMINI_API_KEY or not PRISMA_AIRS_API_KEY or not PRISMA_AIRS_PROFILE:
     raise EnvironmentError("GEMINI_API_KEY and PRISMA_AIRS_API_KEY and PRISMA_AIRS_PROFILE must be set.")
@@ -119,6 +126,30 @@ def is_safe(scan_result: dict) -> (bool, str):
     except Exception:
         return False, "Invalid Prisma AIRS response format."
 
+async def fetch_terraform_state() -> str:
+    """
+    Query Terraform state from PostgreSQL.
+    Returns relevant state information for the resource requested.
+    """
+    conn = await asyncpg.connect(
+        host=AWS_DB_HOST,
+        port=AWS_DB_PORT,
+        database=AWS_DB_NAME,
+        user=AWS_DB_USER,
+        password=AWS_DB_PASSWORD
+    )
+    try:
+        rows = await conn.fetch("SELECT * FROM terraform_remote_state.states;")
+        if not rows:
+            return "No Terraform state found."
+        state_lines = []
+        for row in rows:
+            state_lines.append(json.dumps(dict(row), indent=2))
+        final_result = "\n".join(state_lines)
+        return final_result
+    finally:
+        await conn.close()
+
 
 def run_terraform_mcp(question: str) -> str:
     """
@@ -165,7 +196,7 @@ async def chat_stream(message: str):
         return {"error": "Empty message"}
 
     async def event_generator():
-        # 1️⃣ Input scan
+        # Input scan
         yield f"data:{json.dumps({'type': 'log', 'text': 'Scanning input via Prisma AIRS...'})}\n\n"
         input_scan = scan_with_prisma_airs(message)
         if "error" in input_scan:
@@ -179,7 +210,16 @@ async def chat_stream(message: str):
 
         yield f"data:{json.dumps({'type': 'log', 'text': f'Input allowed by Prisma AIRS: {input_msg}'})}\n\n"
 
-        # 2️⃣ Setup agent if needed
+        # Fetch Terraform state from PostgreSQL
+        yield f"data:{json.dumps({'type':'log','text':'Fetching current Terraform remote state from PostgreSQL...'})}\n\n"
+        try:
+            tf_state = await fetch_terraform_state()
+            yield f"data:{json.dumps({'type':'log','text':'Terraform state fetched.'})}\n\n"
+        except Exception as e:
+            tf_state = "[Error fetching Terraform state]"
+            yield f"data:{json.dumps({'type':'error','text': f'PostgreSQL query failed: {str(e)}'})}\n\n"
+
+        # Setup agent and connect to TerraformMCP
         if agent is None:
             yield f"data:{json.dumps({'type':'log','text':'Connecting to Terraform MCP...'})}\n\n"
             try:
@@ -189,31 +229,34 @@ async def chat_stream(message: str):
                 yield f"data:{json.dumps({'type':'error','text': f'Failed to initialize agent: {str(e)}'})}\n\n"
                 return
 
-        terraform_context = None
-        if "terraform" in message.lower() or "hcl" in message.lower():
-            yield f"data:{json.dumps({'type':'log', 'text':'Streaming Terraform MCP response...'})}\n\n"
-            terraform_q = {"messages":[{"role":"user","content":message}]}
-            try:
-                # ✅ invoke agent and simulate chunked streaming
-                result = await agent.ainvoke(terraform_q)
-                for line in str(result).splitlines():
-                    yield f"data:{json.dumps({'type':'mcp','text':line})}\n\n"
-                    await asyncio.sleep(0.02)
-                terraform_context = "✅ MCP streaming complete"
-            except Exception as e:
-                yield f"data:{json.dumps({'type':'error','text': f'MCP streaming error: {str(e)}'})}\n\n"
-                return
+        terraform_context = []
+        yield f"data:{json.dumps({'type':'log', 'text':'Streaming Terraform MCP response...'})}\n\n"
+        terraform_q = {"messages":[{"role":"user","content":message}]}
+        try:
+            # invoke agent and simulate chunked streaming
+            result = await agent.ainvoke(terraform_q)
+            for line in str(result).splitlines():
+                terraform_context.append(line) 
+                yield f"data:{json.dumps({'type':'mcp','text':line})}\n\n"
+                await asyncio.sleep(0.02)
+            terraform_context = "\n".join(terraform_context)
+        except Exception as e:
+            yield f"data:{json.dumps({'type':'error','text': f'MCP streaming error: {str(e)}'})}\n\n"
+            return
 
-        # 3️⃣ Construct Gemini prompt
+        # Construct Gemini prompt
         system_prompt = (
             "You are a Helpful Infrastructure Agent. "
-            "Answer Terraform questions clearly and provide examples where useful.\n\n"
+            "Answer Terraform questions clearly and provide examples where useful. Use Terraform MCP server responses as the authoritative source. Report versions and recommendations exactly as MCP returns them. Always clearly indicate the provider versions or configuration as returned by MCP.\n\n"
         )
+        
+        full_prompt = system_prompt + f"User Question:\n{message}\n\n"
         if terraform_context:
-            full_prompt = system_prompt + f"User Question:\n{message}\n\nTerraform MCP Context:\n{terraform_context}"
-        else:
-            full_prompt = system_prompt + f"User Question:\n{message}"
+            full_prompt += f"Terraform MCP Context:\n{terraform_context} - prioritize this information.\n\n"
+        full_prompt += f"Current Terraform State (from PostgreSQL):\n{tf_state}\n\n"
+        
 
+        # yield f"data:{json.dumps({'type':'log', 'text': f'Full prompt: {full_prompt}...'})}\n\n"
         yield f"data:{json.dumps({'type':'log','text':'Generating Gemini response...'})}\n\n"
 
         try:
@@ -228,8 +271,8 @@ async def chat_stream(message: str):
             yield f"data:{json.dumps({'type': 'gemini', 'text': gemini_text})}\n\n"
 
         except Exception as e:
-            # import traceback
-            # traceback.print_exc()
+            import traceback
+            traceback.print_exc()
             yield f"data:{json.dumps({'type':'error','text': f'Gemini error: {str(e)}'})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
