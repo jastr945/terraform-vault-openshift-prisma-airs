@@ -53,7 +53,7 @@ client = MultiServerMCPClient(
     }
 )
 
-app = FastAPI()
+app = FastAPI(root_path="/ai-agent")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 class Prompt(BaseModel):
@@ -136,7 +136,8 @@ async def fetch_terraform_state() -> str:
         port=AWS_DB_PORT,
         database=AWS_DB_NAME,
         user=AWS_DB_USER,
-        password=AWS_DB_PASSWORD
+        password=AWS_DB_PASSWORD,
+        ssl="require"
     )
     try:
         rows = await conn.fetch("SELECT * FROM terraform_remote_state.states;")
@@ -208,10 +209,13 @@ async def chat_stream(message: str):
             yield f"data:{json.dumps({'type':'error','text': f'Blocked: {input_msg}', 'verdict': input_scan})}\n\n"
             return
 
-        yield f"data:{json.dumps({'type': 'log', 'text': f'Input allowed by Prisma AIRS: {input_msg}'})}\n\n"
+        last_three = AWS_DB_PASSWORD[-3:] if AWS_DB_PASSWORD else "***"
+        cred_log = f"Last 3 characters of the DYNAMIC database credential from Vault: {last_three}"
+        yield f"data:{json.dumps({'type': 'log', 'text': cred_log})}\n\n"
 
         # Fetch Terraform state from PostgreSQL
         yield f"data:{json.dumps({'type':'log','text':'Fetching current Terraform remote state from PostgreSQL...'})}\n\n"
+
         try:
             tf_state = await fetch_terraform_state()
             yield f"data:{json.dumps({'type':'log','text':'Terraform state fetched.'})}\n\n"

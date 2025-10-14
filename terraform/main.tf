@@ -12,11 +12,16 @@ module "vault" {
   gemini_api_key      = var.gemini_api_key
   prisma_airs_api_key = var.prisma_airs_api_key
   prisma_airs_profile = var.prisma_airs_profile
+  db_name             = var.db_name
+  db_username         = var.db_username
+  db_password         = var.db_password
+  db_port             = var.db_port
+  db_host             = module.postgres.rds_hostname
 }
 
 module "postgres" {
-  source              = "./modules/postgres"
-  db_name            = var.db_name
-  db_username        = var.db_username
-  db_password        = var.db_password
+  source      = "./modules/postgres"
+  db_name     = var.db_name
+  db_username = var.db_username
+  db_password = var.db_password
 }

@@ -19,8 +19,7 @@
 </head>
 <body>
   <h1>&#35;2: Helpful Infrastructure Agent</h1>
-  <h2>Terraform + Prisma AIRS</h2>
-  <h4>Last 3 digits of the LLM token: <span id="token-suffix">Loading...</span></h4>
+  <h2>Terraform MCP + Prisma AIRS</h2>
   <div id="chat"></div>
   <input type="text" id="input" placeholder="Ask about Terraform best practices..." style="width: 80%;" />
   <button onclick="sendMessageStream()">Send</button>
@@ -45,14 +44,6 @@
     else if (action === "block" && category === "malicious") color = "red";
     const text = `${label}: ${action.toUpperCase()} (${category})`;
     return `<div style="color:${color}; font-weight:bold;">${text}</div>`;
-  }
-
-  async function fetchTokenSuffix() {
-    try {
-      const res = await fetch("/token-suffix");
-      const data = await res.json();
-      document.getElementById("token-suffix").textContent = data.suffix;
-    } catch { document.getElementById("token-suffix").textContent = "Error"; }
   }
 
   async function sendMessageStream() {

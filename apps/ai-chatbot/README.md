@@ -3,7 +3,7 @@
 If you want to just test the app:
 
 ```sh
-cd app/ai-chatbot
+cd apps/ai-chatbot
 
 export GEMINI_API_KEY="your_gemini_api_key"
 export PRISMA_AIRS_API_KEY="your_prisma_airs_api_key"
@@ -17,4 +17,4 @@ docker run -p 5000:5000 \
   gemini-chatbot
 ```
 
-Once the container is running, open your browser and go to `http://localhost:5000`.
+Once the container is running, open your browser and go to `http://localhost:5000/ai-chatbot`.

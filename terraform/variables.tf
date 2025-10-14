@@ -45,3 +45,6 @@ variable "db_password" {
   description = "RDS root user password (careful with special chars - not everything is accepted!)"
   sensitive   = true
 }
+variable "db_port" {
+  default = 5432
+}

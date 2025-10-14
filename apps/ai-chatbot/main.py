@@ -22,7 +22,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 # Initialize the Gemini model
 model = genai.GenerativeModel("gemini-2.0-flash-001")
 
-app = FastAPI()
+app = FastAPI(root_path="/ai-chatbot")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 class Prompt(BaseModel):

@@ -51,14 +51,14 @@ spec:
               cpu: "500m"
           readinessProbe:
             httpGet:
-              path: /healthcheck
+              path: /ai-chatbot/healthcheck
               port: 5000
             initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 3
           livenessProbe:
             httpGet:
-              path: /healthcheck
+              path: /ai-chatbot/healthcheck
               port: 5000
             initialDelaySeconds: 5
             periodSeconds: 5
@@ -88,6 +88,7 @@ metadata:
   name: ai-chatbot
   namespace: ai-chatbot
 spec:
+  path: /ai-chatbot
   to:
     kind: Service
     name: ai-chatbot-svc

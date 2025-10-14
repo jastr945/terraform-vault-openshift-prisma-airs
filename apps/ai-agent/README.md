@@ -42,7 +42,7 @@ docker run --name terraform-mcp \
 Open a **separate terminal** and navigate to the app directory:
 
 ```sh
-cd app/ai-agent
+cd apps/ai-agent
 ```
 
 Set your environment variables:
@@ -51,6 +51,8 @@ Set your environment variables:
 export GEMINI_API_KEY="your_gemini_api_key"
 export PRISMA_AIRS_API_KEY="your_prisma_airs_api_key"
 export PRISMA_AIRS_PROFILE="your_prisma_airs_profile"
+export AWS_DB_HOST="your_rds_host"
+export AWS_DB_PASSWORD="your_rds_password"
 ```
 
 Build the Docker image:
@@ -67,6 +69,8 @@ docker run --network infra-agent-net \
   -e GEMINI_API_KEY=$GEMINI_API_KEY \
   -e PRISMA_AIRS_API_KEY=$PRISMA_AIRS_API_KEY \
   -e PRISMA_AIRS_PROFILE=$PRISMA_AIRS_PROFILE \
+  -e AWS_DB_HOST=$AWS_DB_HOST \
+  -e AWS_DB_PASSWORD=$AWS_DB_PASSWORD \
   ai-agent
 ```
 
@@ -77,7 +81,7 @@ docker run --network infra-agent-net \
 Once the container is running, open your browser and go to:
 
 ```
-http://localhost:5001
+http://localhost:5001/ai-agent
 ```
 
 ---
