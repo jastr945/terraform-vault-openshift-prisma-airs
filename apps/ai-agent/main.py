@@ -281,11 +281,6 @@ async def chat_stream(message: str):
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
-    
-@app.get("/token-suffix")
-def token_suffix():
-    return {"suffix": GEMINI_API_KEY[-3:]}
-
 
 @app.get("/healthcheck")
 def healthcheck():

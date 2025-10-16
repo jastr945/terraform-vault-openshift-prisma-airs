@@ -73,6 +73,18 @@ path "kv/metadata/chatbot" {
 path "sys/events/subscribe/kv*" {
   capabilities = ["read"]
 }
+
+path "postgres/creds/*" {
+  capabilities = ["read", "list"]
+}
+
+path "sys/leases/renew" {
+  capabilities = ["update"]
+}
+
+path "sys/leases/revoke" {
+  capabilities = ["update"]
+}
 EOT
 }
 
@@ -111,18 +123,10 @@ resource "vault_database_secret_backend_role" "ai_agent_app" {
   name                = "ai-agent-app"
   db_name             = vault_database_secret_backend_connection.postgres.name
   creation_statements = [
-    "CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT SELECT ON ALL TABLES IN SCHEMA terraform_remote_state TO \"{{name}}\";"
-  ]
+  "CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}';",
+  "GRANT USAGE ON SCHEMA terraform_remote_state TO \"{{name}}\";",
+  "GRANT SELECT ON ALL TABLES IN SCHEMA terraform_remote_state TO \"{{name}}\";"
+]
   default_ttl         = "30"
   max_ttl             = "60"
-}
-
-resource "vault_policy" "ai_agent_policy" {
-  name = "ai-agent-policy"
-
-  policy = <<EOT
-path "postgres/creds/ai-agent-app" {
-  capabilities = ["read"]
-}
-EOT
 }

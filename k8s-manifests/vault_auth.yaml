@@ -45,7 +45,7 @@ spec:
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultStaticSecret
 metadata:
-  name: ai-chatbot-secret-gemini
+  name: ai-chatbot-secret
   namespace: ai-chatbot
 spec:
   namespace: admin
@@ -62,6 +62,25 @@ spec:
   rolloutRestartTargets:
     - kind: Deployment
       name: ai-chatbot
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultDynamicSecret
+metadata:
+  name: ai-agent-secret
+  namespace: ai-chatbot
+spec:
+  namespace: admin
+  mount: postgres
+  path: creds/ai-agent-app
+  destination:
+    create: true
+    name: agentkv
+    overwrite: true
+  refreshAfter: "30s"
+  rolloutRestartTargets:
+    - kind: Deployment
+      name: ai-agent
+  vaultAuthRef: vault-auth
 ---
 apiVersion: v1
 kind: ServiceAccount

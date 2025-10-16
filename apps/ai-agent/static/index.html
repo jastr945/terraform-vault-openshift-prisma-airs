@@ -55,7 +55,7 @@
 
     chat.innerHTML += `<div class="msg user">You: ${message}</div>`;
 
-    const evtSource = new EventSource(`/chat-stream?message=${encodeURIComponent(message)}`);
+    const evtSource = new EventSource(`/ai-agent/chat-stream?message=${encodeURIComponent(message)}`);
     
     evtSource.onmessage = function(event) {
         const data = JSON.parse(event.data);

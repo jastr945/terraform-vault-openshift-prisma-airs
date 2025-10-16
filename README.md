@@ -16,7 +16,7 @@ With this deployment pattern, teams gain a fully automated, secure, and scalable
 | Component                        | Purpose                            |
 | -------------------------------- | ---------------------------------- |
 | **AI Chatbot (FastAPI)**         | Gemini-based chatbot with built-in guardrails by Palo Alto Networks Prisma AIRS|
-| **AI Agent (FastAPI)**         | Gemini-based agent leveraging Terraform MCP with built-in guardrails by Palo Alto
+| **AI Agent (FastAPI)**           | Gemini-based agent (helpful infrastructure assistant) leveraging Terraform MCP with built-in guardrails Prisma AIRS|
 | **Openshift**                    | Runs your apps as a pods             |
 | **HCP Vault Dedicated**          | Stores secrets in `kv-v2`          |
 | **Vault Secrets Operator (VSO)** | Pulls secrets into Openshift       |
@@ -58,7 +58,8 @@ To stand up the basic infrastructure, a few credentials must be configured:
    terraform apply --auto-approve
    ```
 At the end of this setup, Terraform provisions the core infrastructure:
-- HCP Vault Dedicated cluster, roles, mounts, and secrets.
+- HCP Vault Dedicated cluster, roles, mounts, and secrets;
+- AWS RDS database storing fake Terraform backend data (state files).
 
 ## Openshift setup
 
@@ -86,7 +87,7 @@ Build a Docker image and push it to the OpenShift Integrated Image Registry:
 
 ```sh
 # Navigate to the app directory
-cd ../app/ai-chatbot
+cd ../apps/ai-chatbot
 
 # Check if the registry route exists
 oc get route -n openshift-image-registry
@@ -108,6 +109,20 @@ docker tag ai-chatbot-openshift:latest <route-hostname>/ai-chatbot/ai-chatbot-op
 docker push <route-hostname>/ai-chatbot/ai-chatbot-openshift:latest
 ```
 
+For the second agent app,
+
+```sh
+# Navigate to the app directory
+cd ../ai-agent
+
+# Build the Docker image for amd64 architecture
+docker buildx build --platform linux/amd64 -t ai-agent-openshift:latest .
+
+# Tag & push your image
+docker tag ai-agent-openshift:latest <route-hostname>/ai-chatbot/ai-agent-openshift:latest
+docker push <route-hostname>/ai-chatbot/ai-agent-openshift:latest
+```
+
 ## Install Vault Secrets Operator (VSO)
 
 You can install VSO on OpenShift using either the Red Hat OperatorHub or a helm chart. The [official installation guide](https://developer.hashicorp.com/vault/docs/deploy/kubernetes/vso/openshift) supports and documents both options. 
@@ -115,7 +130,7 @@ You can install VSO on OpenShift using either the Red Hat OperatorHub or a helm 
 Below is the Helm chart installation example.
 
 ```sh
-cd ../k8s-manifests
+cd ../../k8s-manifests
 
 oc create namespace vault-secrets-operator-system
 ```
@@ -230,14 +245,25 @@ VAULT_TOKEN=$APP_TOKEN vault kv get \
 
 You should see the secrets stored in Vault for the chatbot app.
 
+Now test if the role also correctly generates dynamic database credentials:
 
-## Deploy the App
+```sh
+
+VAULT_TOKEN=$APP_TOKEN vault read \
+  -namespace="admin" \
+  postgres/creds/ai-agent-app
+```
+
+
+## Deploy the Apps
 
 ```sh
 oc apply -f deployment.yaml
 ```
 
-Check if pods are running
+This deployment should deploy use case #1 (chatbot), use case #2 (agent - helpful infrastructure assistant), and the Terraform MCP server used by app #2.
+
+Check if pods are running:
 
 ```sh
 oc get pods -n ai-chatbot
@@ -245,13 +271,22 @@ oc get pods -n ai-chatbot
 
 ## Access the App
 
-Check the route hostname:
+Use case #1 (chatbot)
+Check the route hostname for ai-chatbot :
 
 ```sh
 oc get route ai-chatbot -n ai-chatbot
 ```
 
-Open the `HOST/PORT` in your browser.
+Open the `HOST/PORT` in your browser. Use case #1 Chatbot runs on /ai-chatbot.
+
+Use case #2 
+
+```sh
+oc get route ai-agent -n ai-chatbot
+```
+
+The second app runs on /ai-agent.
 
 ## Troubleshooting
 
@@ -259,6 +294,10 @@ Check if secret was synced:
 
 ```sh
 oc get secret chatbotkv -n ai-chatbot
+```
+
+```sh
+oc get secret agentkv -n ai-chatbot
 ```
 
 Check deployment logs for VSO:
@@ -270,6 +309,10 @@ oc logs deployment/vault-secrets-operator-controller-manager -n vault-secrets-op
 ## Cleanup
 
 Destroy all infra by running:
+
+```sh
+oc delete namespace ai-chatbot
+```
 
 ```sh
 terraform destroy

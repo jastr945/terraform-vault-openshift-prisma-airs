@@ -114,7 +114,7 @@
 
   async function fetchTokenSuffix() {
     try {
-      const res = await fetch("/token-suffix");
+      const res = await fetch("/ai-chatbot/token-suffix");
       const data = await res.json();
       document.getElementById("token-suffix").textContent = data.suffix;
     } catch (err) {
@@ -134,7 +134,7 @@
     spinner.style.display = "block";
 
     try {
-      const res = await fetch("/chat", {
+      const res = await fetch("/ai-chatbot/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message }),
