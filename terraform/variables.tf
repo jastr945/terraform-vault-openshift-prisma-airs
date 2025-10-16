@@ -22,14 +22,29 @@ variable "vault_namespace" {
   default = "admin"
 }
 variable "gemini_api_key" {
-    description = "LLM API Key"
-    type = string
+  description = "LLM API Key"
+  type = string
 }
 variable "prisma_airs_api_key" {
-    description = "Prisma AIRS API key"
-    type = string
+  description = "Prisma AIRS API key"
+  type = string
 }
 variable "prisma_airs_profile" {
-    description = "Prisma AIRS deployment profile"
-    type = string
+  description = "Prisma AIRS deployment profile"
+  type = string
+}
+variable "db_name" {
+  description = "Unique name to assign to RDS instance"
+  default = "aiagentdb"
+}
+variable "db_username" {
+  description = "RDS root username"
+  default = "aiagent"
+}
+variable "db_password" {
+  description = "RDS root user password (careful with special chars - not everything is accepted!)"
+  sensitive   = true
+}
+variable "db_port" {
+  default = 5432
 }

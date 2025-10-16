@@ -73,6 +73,18 @@ path "kv/metadata/chatbot" {
 path "sys/events/subscribe/kv*" {
   capabilities = ["read"]
 }
+
+path "postgres/creds/*" {
+  capabilities = ["read", "list"]
+}
+
+path "sys/leases/renew" {
+  capabilities = ["update"]
+}
+
+path "sys/leases/revoke" {
+  capabilities = ["update"]
+}
 EOT
 }
 
@@ -85,4 +97,36 @@ resource "vault_kubernetes_auth_backend_role" "my_app_role" {
   token_ttl                        = 3600      # 1 hour
   token_type                       = "default"
   audience                         = "https://kubernetes.default.svc"
+}
+
+/* Dynamic Database Credential Configuration */
+
+resource "vault_mount" "db" {
+  path = "postgres"
+  type = "database"
+}
+
+resource "vault_database_secret_backend_connection" "postgres" {
+  backend       = vault_mount.db.path
+  name          = "postgresql"
+  allowed_roles = ["ai-agent-app"]
+
+  postgresql {
+    connection_url = "postgresql://{{username}}:{{password}}@${var.db_host}:${var.db_port}/${var.db_name}?sslmode=require"
+    username       = var.db_username
+    password       = var.db_password
+  }
+}
+
+resource "vault_database_secret_backend_role" "ai_agent_app" {
+  backend             = vault_mount.db.path
+  name                = "ai-agent-app"
+  db_name             = vault_database_secret_backend_connection.postgres.name
+  creation_statements = [
+  "CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}';",
+  "GRANT USAGE ON SCHEMA terraform_remote_state TO \"{{name}}\";",
+  "GRANT SELECT ON ALL TABLES IN SCHEMA terraform_remote_state TO \"{{name}}\";"
+]
+  default_ttl         = "30"
+  max_ttl             = "60"
 }

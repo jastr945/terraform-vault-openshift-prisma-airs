@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Helpful Infrastructure Agent</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    #chat { border: 1px solid #ccc; padding: 10px; height: 400px; overflow-y: auto; margin-bottom: 10px; white-space: pre-wrap; }
+    .user { font-weight: bold; color: blue; }
+    .bot { font-weight: bold; color: green; }
+    .msg { margin: 5px 0; }
+    #spinner { display: none; margin: 10px 0; }
+    .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
+    @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
+    pre { background-color: #f8f8f8; border: 1px solid #ddd; padding: 8px; margin-top: 5px; font-size: 0.85em; overflow-x: auto; display: none; }
+    .toggle-button { background: none; border: none; color: #007BFF; text-decoration: underline; cursor: pointer; padding: 0; font-size: 0.9em; margin-top: 5px; }
+  </style>
+</head>
+<body>
+  <h1>&#35;2: Helpful Infrastructure Agent</h1>
+  <h2>Terraform MCP + Prisma AIRS</h2>
+  <div id="chat"></div>
+  <input type="text" id="input" placeholder="Ask about Terraform best practices..." style="width: 80%;" />
+  <button onclick="sendMessageStream()">Send</button>
+  <div id="spinner"><div class="loader"></div> <span>Thinking...</span></div>
+
+  <script>
+  function toggleVisibility(id) {
+    const elem = document.getElementById(id);
+    elem.style.display = elem.style.display === "none" ? "block" : "none";
+  }
+
+  function scrollToElementById(id) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function createVerdictHeader(label, verdict) {
+    const action = verdict.action || "unknown";
+    const category = verdict.category || "unknown";
+    let color = "gray";
+    if (action === "allow" && category === "benign") color = "green";
+    else if (action === "block" && category === "malicious") color = "red";
+    const text = `${label}: ${action.toUpperCase()} (${category})`;
+    return `<div style="color:${color}; font-weight:bold;">${text}</div>`;
+  }
+
+  async function sendMessageStream() {
+    const input = document.getElementById("input");
+    const chat = document.getElementById("chat");
+    const message = input.value.trim();
+    if (!message) return;
+    input.value = "";
+
+    chat.innerHTML += `<div class="msg user">You: ${message}</div>`;
+
+    const evtSource = new EventSource(`/ai-agent/chat-stream?message=${encodeURIComponent(message)}`);
+    
+    evtSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "log") {
+        chat.innerHTML += `<div class="msg bot" style="color: gray;">${data.text}</div>`;
+        } else if (data.type === "mcp") {
+        chat.innerHTML += `<div class="msg bot" style="color: purple;">${data.text}</div>`;
+        } else if (data.type === "gemini") {
+        chat.innerHTML += `<div class="msg bot" style="color: green;">${data.text}</div>`;
+        } else if (data.type === "error") {
+        chat.innerHTML += `<div class="msg bot" style="color: red;">${data.text}</div>`;
+        if (data.verdict) {
+            const verdictId = `verdict-${Date.now()}`;
+            chat.innerHTML += `<pre id="${verdictId}">${JSON.stringify(data.verdict,null,2)}</pre>`;
+        }
+        }
+        chat.scrollTop = chat.scrollHeight;
+    };
+
+    evtSource.onerror = function(err) {
+        chat.innerHTML += `<div class="msg bot" style="color:black;">End of stream.</div>`;
+        evtSource.close();
+    };
+}
+
+  fetchTokenSuffix();
+  </script>
+</body>
+</html>

@@ -51,14 +51,14 @@ spec:
               cpu: "500m"
           readinessProbe:
             httpGet:
-              path: /healthcheck
+              path: /ai-chatbot/healthcheck
               port: 5000
             initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 3
           livenessProbe:
             httpGet:
-              path: /healthcheck
+              path: /ai-chatbot/healthcheck
               port: 5000
             initialDelaySeconds: 5
             periodSeconds: 5
@@ -88,6 +88,7 @@ metadata:
   name: ai-chatbot
   namespace: ai-chatbot
 spec:
+  path: /ai-chatbot
   to:
     kind: Service
     name: ai-chatbot-svc
@@ -95,3 +96,183 @@ spec:
     targetPort: http
   tls:
     termination: edge
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-agent
+  namespace: ai-chatbot
+  labels:
+    app: ai-agent
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: ai-agent
+  template:
+    metadata:
+      labels:
+        app: ai-agent
+    spec:
+      containers:
+        - name: ai-agent
+          image: image-registry.openshift-image-registry.svc:5000/ai-chatbot/ai-agent-openshift:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          env:
+            - name: MCP_HTTP_URL
+              value: "http://terraform-mcp.ai-chatbot.svc.cluster.local:8080/mcp"
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: chatbotkv
+                  key: GEMINI_API_KEY
+            - name: PRISMA_AIRS_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: chatbotkv
+                  key: PRISMA_AIRS_API_KEY
+            - name: PRISMA_AIRS_PROFILE
+              valueFrom:
+                secretKeyRef:
+                  name: chatbotkv
+                  key: PRISMA_AIRS_PROFILE
+            - name: AWS_DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: chatbotkv
+                  key: AWS_DB_HOST
+            - name: AWS_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: agentkv
+                  key: username
+            - name: AWS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: agentkv
+                  key: password
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /ai-agent/healthcheck
+              port: 5001
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /ai-agent/healthcheck
+              port: 5001
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-agent-svc
+  namespace: ai-chatbot
+  labels:
+    app: ai-agent
+spec:
+  selector:
+    app: ai-agent
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5001
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: ai-agent
+  namespace: ai-chatbot
+spec:
+  path: /ai-agent
+  to:
+    kind: Service
+    name: ai-agent-svc
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: terraform-mcp
+  namespace: ai-chatbot
+  labels:
+    app: terraform-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: terraform-mcp
+  template:
+    metadata:
+      labels:
+        app: terraform-mcp
+    spec:
+      serviceAccountName: default
+      containers:
+        - name: terraform-mcp
+          image: hashicorp/terraform-mcp-server:latest
+          imagePullPolicy: Always
+          env:
+            - name: TRANSPORT_HOST
+              value: "0.0.0.0"
+            - name: TRANSPORT_MODE
+              value: "streamable-http"
+            - name: MCP_SESSION_MODE
+              value: "stateless"
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: terraform-mcp
+  namespace: ai-chatbot
+spec:
+  selector:
+    app: terraform-mcp
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
