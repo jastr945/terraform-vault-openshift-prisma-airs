@@ -1,5 +1,24 @@
+terraform {
+  required_providers {
+    postgresql = {
+      source  = "cyrilgdn/postgresql"
+      version = "1.26.0"
+    }
+  }
+}
+
 provider "aws" {
   region = "us-west-2"
+}
+
+provider "postgresql" {
+  alias    = "bootstrap"
+  host     = aws_db_instance.ai_agent.address
+  port     = 5432
+  database = "postgres"
+  username = var.db_username
+  password = var.db_password
+  sslmode  = "require" # or "disable" if testing
 }
 
 data "aws_availability_zones" "available" {}
@@ -75,4 +94,42 @@ resource "aws_db_instance" "ai_agent" {
   parameter_group_name   = aws_db_parameter_group.ai_agent.name
   publicly_accessible    = true
   skip_final_snapshot    = true
+}
+
+# Fake Terraform state backend for demo
+resource "postgresql_database" "ai_agent_db" {
+  provider = postgresql.bootstrap
+  name                   = var.db_name
+  owner                  = var.db_username
+  lc_collate = "en_US.UTF-8"
+  lc_ctype   = "en_US.UTF-8"
+  allow_connections      = true
+  alter_object_ownership = true
+}
+
+provider "postgresql" {
+  alias    = "ai_agent"
+  host     = aws_db_instance.ai_agent.address
+  port     = 5432
+  database = var.db_name
+  username = var.db_username
+  password = var.db_password
+  sslmode  = "require"
+}
+
+resource "postgresql_schema" "terraform_remote_state" {
+  provider = postgresql.ai_agent
+  name     = "terraform_remote_state"
+  depends_on = [postgresql_database.ai_agent_db]
+}
+
+resource "null_resource" "create_table_and_load_fake_data" {
+  depends_on = [postgresql_schema.terraform_remote_state]
+
+  provisioner "local-exec" {
+    command = <<EOT
+bash -c 'psql "postgresql://${var.db_username}:${var.db_password}@${aws_db_instance.ai_agent.address}:5432/${var.db_name}" \
+  -c "\\copy terraform_remote_state.states(id, name, data) FROM '\''${path.module}/fake_db_data.csv'\'' CSV HEADER;"'
+EOT
+  }
 }
