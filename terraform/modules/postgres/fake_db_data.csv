@@ -1,0 +1,293 @@
+id,name,data
+1,default,"{
+  ""version"": 4,
+  ""terraform_version"": ""1.10.3"",
+  ""serial"": 4,
+  ""lineage"": ""77256f3a-90a2-5ca1-2bab-c26c24f877cd"",
+  ""outputs"": {
+    ""bucket_one_name"": {
+      ""value"": ""ai-agent-private-bucket-pj"",
+      ""type"": ""string""
+    },
+    ""bucket_two_name"": {
+      ""value"": ""ai-chatbot-private-bucket-pj"",
+      ""type"": ""string""
+    },
+    ""s3_full_access_role_arn"": {
+      ""value"": ""arn:aws:iam::764686269646:role/s3-full-access-role-pj"",
+      ""type"": ""string""
+    },
+    ""s3_read_only_role_arn"": {
+      ""value"": ""arn:aws:iam::764686269646:role/s3-read-only-role-pj"",
+      ""type"": ""string""
+    }
+  },
+  ""resources"": [
+    {
+      ""mode"": ""managed"",
+      ""type"": ""aws_iam_role"",
+      ""name"": ""polina_ai_chatbot_s3_full_access"",
+      ""provider"": ""provider[\""registry.terraform.io/hashicorp/aws\""]"",
+      ""instances"": [
+        {
+          ""schema_version"": 0,
+          ""attributes"": {
+            ""arn"": ""arn:aws:iam::764686269646:role/s3-full-access-role-pj"",
+            ""assume_role_policy"": ""{\""Statement\"":[{\""Action\"":\""sts:AssumeRole\"",\""Effect\"":\""Allow\"",\""Principal\"":{\""Service\"":\""ec2.amazonaws.com\""}}],\""Version\"":\""2012-10-17\""}"",
+            ""create_date"": ""2025-10-09T22:40:20Z"",
+            ""description"": """",
+            ""force_detach_policies"": false,
+            ""id"": ""s3-full-access-role-pj"",
+            ""inline_policy"": [],
+            ""managed_policy_arns"": [],
+            ""max_session_duration"": 3600,
+            ""name"": ""s3-full-access-role-pj"",
+            ""name_prefix"": """",
+            ""path"": ""/"",
+            ""permissions_boundary"": """",
+            ""tags"": null,
+            ""tags_all"": {},
+            ""unique_id"": ""AROA3ECW2PTHBUGCJTSDD""
+          },
+          ""sensitive_attributes"": [],
+          ""private"": ""4111 1111 1111 1111""
+        }
+      ]
+    },
+    {
+      ""mode"": ""managed"",
+      ""type"": ""aws_iam_role"",
+      ""name"": ""polina_ai_chatbot_s3_read_only"",
+      ""provider"": ""provider[\""registry.terraform.io/hashicorp/aws\""]"",
+      ""instances"": [
+        {
+          ""schema_version"": 0,
+          ""attributes"": {
+            ""arn"": ""arn:aws:iam::764686269646:role/s3-read-only-role-pj"",
+            ""assume_role_policy"": ""{\""Statement\"":[{\""Action\"":\""sts:AssumeRole\"",\""Effect\"":\""Allow\"",\""Principal\"":{\""Service\"":\""ec2.amazonaws.com\""}}],\""Version\"":\""2012-10-17\""}"",
+            ""create_date"": ""2025-10-09T22:40:20Z"",
+            ""description"": """",
+            ""force_detach_policies"": false,
+            ""id"": ""s3-read-only-role-pj"",
+            ""inline_policy"": [],
+            ""managed_policy_arns"": [],
+            ""max_session_duration"": 3600,
+            ""name"": ""s3-read-only-role-pj"",
+            ""name_prefix"": """",
+            ""path"": ""/"",
+            ""permissions_boundary"": """",
+            ""tags"": null,
+            ""tags_all"": {},
+            ""unique_id"": ""AROA3ECW2PTHNHWOGVLSA""
+          },
+          ""sensitive_attributes"": [],
+          ""private"": ""Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdG9rZW4iOiJhYmNkZWYxMjM0NTY3ODkwYWJjZGVmMTIzNDU2Nzg5MCIsInVzZXIiOiJhaWFnZW50IiwiaWF0IjoxNzMwMjY2NjAwfQ.DUMMY_SIGNATURE_VALUE""
+        }
+      ]
+    },
+    {
+      ""mode"": ""managed"",
+      ""type"": ""aws_iam_role_policy"",
+      ""name"": ""polina_ai_chatbot_s3_read_only_policy"",
+      ""provider"": ""provider[\""registry.terraform.io/hashicorp/aws\""]"",
+      ""instances"": [
+        {
+          ""schema_version"": 0,
+          ""attributes"": {
+            ""id"": ""s3-read-only-role-pj:s3-read-only-policy-pj"",
+            ""name"": ""s3-read-only-policy-pj"",
+            ""name_prefix"": """",
+            ""policy"": ""{\""Version\"":\""2012-10-17\"",\""Statement\"":[{\""Action\"":[\""s3:GetObject\"",\""s3:ListBucket\""],\""Effect\"":\""Allow\"",\""Resource\"":[\""arn:aws:s3:::ai-agent-private-bucket-pj\"",\""arn:aws:s3:::ai-agent-private-bucket-pj/*\"",\""arn:aws:s3:::ai-chatbot-private-bucket-pj\"",\""arn:aws:s3:::ai-chatbot-private-bucket-pj/*\""]}]}"",
+            ""role"": ""s3-read-only-role-pj""
+          },
+          ""sensitive_attributes"": [],
+          ""private"": ""Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0ZXN0IjoidHJ1ZSJ9.DUMMY_SIGNATURE_VALUE"",
+          ""dependencies"": [
+            ""aws_iam_role.polina_ai_chatbot_s3_read_only"",
+            ""aws_s3_bucket.polina_ai_agent_private_bucket"",
+            ""aws_s3_bucket.polina_ai_chatbot_private_bucket""
+          ]
+        }
+      ]
+    },
+    {
+      ""mode"": ""managed"",
+      ""type"": ""aws_iam_role_policy_attachment"",
+      ""name"": ""polina_ai_chatbot_s3_full_access_attach"",
+      ""provider"": ""provider[\""registry.terraform.io/hashicorp/aws\""]"",
+      ""instances"": [
+        {
+          ""schema_version"": 0,
+          ""attributes"": {
+            ""id"": ""s3-full-access-role-pj/arn:aws:iam::aws:policy/AmazonS3FullAccess"",
+            ""policy_arn"": ""arn:aws:iam::aws:policy/AmazonS3FullAccess"",
+            ""role"": ""s3-full-access-role-pj""
+          },
+          ""sensitive_attributes"": [],
+          ""private"": ""AKIAIOSFODNN7EXAMPLE"",
+          ""dependencies"": [
+            ""aws_iam_role.polina_ai_chatbot_s3_full_access""
+          ]
+        }
+      ]
+    },
+    {
+      ""mode"": ""managed"",
+      ""type"": ""aws_s3_bucket"",
+      ""name"": ""polina_ai_agent_private_bucket"",
+      ""provider"": ""provider[\""registry.terraform.io/hashicorp/aws\""]"",
+      ""instances"": [
+        {
+          ""schema_version"": 0,
+          ""attributes"": {
+            ""acceleration_status"": """",
+            ""acl"": ""private"",
+            ""arn"": ""arn:aws:s3:::ai-agent-private-bucket-pj"",
+            ""bucket"": ""ai-agent-private-bucket-pj"",
+            ""bucket_domain_name"": ""ai-agent-private-bucket-pj.s3.amazonaws.com"",
+            ""bucket_prefix"": """",
+            ""bucket_region"": ""us-east-2"",
+            ""bucket_regional_domain_name"": ""ai-agent-private-bucket-pj.s3.us-east-2.amazonaws.com"",
+            ""cors_rule"": [],
+            ""force_destroy"": false,
+            ""grant"": [
+              {
+                ""id"": ""7aadfa7726fac31e188e516d40df7770692cae41175498378de023140c95ef1f"",
+                ""permissions"": [
+                  ""FULL_CONTROL""
+                ],
+                ""type"": ""CanonicalUser"",
+                ""uri"": """"
+              }
+            ],
+            ""hosted_zone_id"": ""Z2O1EMRO9K5GLX"",
+            ""id"": ""ai-agent-private-bucket-pj"",
+            ""lifecycle_rule"": [],
+            ""logging"": [],
+            ""object_lock_configuration"": [],
+            ""object_lock_enabled"": false,
+            ""policy"": """",
+            ""region"": ""us-east-2"",
+            ""replication_configuration"": [],
+            ""request_payer"": ""BucketOwner"",
+            ""server_side_encryption_configuration"": [
+              {
+                ""rule"": [
+                  {
+                    ""apply_server_side_encryption_by_default"": [
+                      {
+                        ""kms_master_key_id"": """",
+                        ""sse_algorithm"": ""AES256""
+                      }
+                    ],
+                    ""bucket_key_enabled"": false
+                  }
+                ]
+              }
+            ],
+            ""tags"": {
+              ""Environment"": ""Dev"",
+              ""Name"": ""First Private Bucket""
+            },
+            ""tags_all"": {
+              ""Environment"": ""Dev"",
+              ""Name"": ""First Private Bucket""
+            },
+            ""timeouts"": null,
+            ""versioning"": [
+              {
+                ""enabled"": false,
+                ""mfa_delete"": false
+              }
+            ],
+            ""website"": [],
+            ""website_domain"": null,
+            ""website_endpoint"": null
+          },
+          ""sensitive_attributes"": [],
+          ""private"": ""Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0ZXN0IjoidHJ1ZSJ9.DUMMY_SIGNATURE_VALUE""
+        }
+      ]
+    },
+    {
+      ""mode"": ""managed"",
+      ""type"": ""aws_s3_bucket"",
+      ""name"": ""polina_ai_chatbot_private_bucket"",
+      ""provider"": ""provider[\""registry.terraform.io/hashicorp/aws\""]"",
+      ""instances"": [
+        {
+          ""schema_version"": 0,
+          ""attributes"": {
+            ""acceleration_status"": """",
+            ""acl"": ""private"",
+            ""arn"": ""arn:aws:s3:::ai-chatbot-private-bucket-pj"",
+            ""bucket"": ""ai-chatbot-private-bucket-pj"",
+            ""bucket_domain_name"": ""ai-chatbot-private-bucket-pj.s3.amazonaws.com"",
+            ""bucket_prefix"": """",
+            ""bucket_region"": ""us-east-2"",
+            ""bucket_regional_domain_name"": ""ai-chatbot-private-bucket-pj.s3.us-east-2.amazonaws.com"",
+            ""cors_rule"": [],
+            ""force_destroy"": false,
+            ""grant"": [
+              {
+                ""id"": ""7aadfa7726fac31e188e516d40df7770692cae41175498378de023140c95ef1f"",
+                ""permissions"": [
+                  ""FULL_CONTROL""
+                ],
+                ""type"": ""CanonicalUser"",
+                ""uri"": """"
+              }
+            ],
+            ""hosted_zone_id"": ""Z2O1EMRO9K5GLX"",
+            ""id"": ""ai-chatbot-private-bucket-pj"",
+            ""lifecycle_rule"": [],
+            ""logging"": [],
+            ""object_lock_configuration"": [],
+            ""object_lock_enabled"": false,
+            ""policy"": """",
+            ""region"": ""us-east-2"",
+            ""replication_configuration"": [],
+            ""request_payer"": ""BucketOwner"",
+            ""server_side_encryption_configuration"": [
+              {
+                ""rule"": [
+                  {
+                    ""apply_server_side_encryption_by_default"": [
+                      {
+                        ""kms_master_key_id"": """",
+                        ""sse_algorithm"": ""AES256""
+                      }
+                    ],
+                    ""bucket_key_enabled"": false
+                  }
+                ]
+              }
+            ],
+            ""tags"": {
+              ""Environment"": ""Dev"",
+              ""Name"": ""Second Private Bucket""
+            },
+            ""tags_all"": {
+              ""Environment"": ""Dev"",
+              ""Name"": ""Second Private Bucket""
+            },
+            ""timeouts"": null,
+            ""versioning"": [
+              {
+                ""enabled"": false,
+                ""mfa_delete"": false
+              }
+            ],
+            ""website"": [],
+            ""website_domain"": null,
+            ""website_endpoint"": null
+          },
+          ""sensitive_attributes"": [],
+          ""private"": ""Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0ZXN0IjoidHJ1ZSJ9.DUMMY_SIGNATURE_VALUE""
+        }
+      ]
+    }
+  ],
+  ""check_results"": null
+}
+"

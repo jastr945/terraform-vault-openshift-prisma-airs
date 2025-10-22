@@ -30,7 +30,7 @@ MCP_HTTP_URL = os.getenv("MCP_HTTP_URL", "http://terraform-mcp:8080/mcp")
 
 AWS_DB_HOST = os.getenv("AWS_DB_HOST")
 AWS_DB_PORT = int(os.getenv("AWS_DB_PORT", 5432))
-AWS_DB_NAME = os.getenv("AWS_DB_NAME", "terraform_backend")
+AWS_DB_NAME = os.getenv("AWS_DB_NAME", "aiagentdb")
 AWS_DB_USER = os.getenv("AWS_DB_USER", "aiagent")
 AWS_DB_PASSWORD = os.getenv("AWS_DB_PASSWORD")
 
@@ -223,7 +223,7 @@ async def chat_stream(message: str):
             tf_state = "[Error fetching Terraform state]"
             yield f"data:{json.dumps({'type':'error','text': f'PostgreSQL query failed: {str(e)}'})}\n\n"
 
-        # Setup agent and connect to TerraformMCP
+        # Setup agent and connect to Terraform MCP
         if agent is None:
             yield f"data:{json.dumps({'type':'log','text':'Connecting to Terraform MCP...'})}\n\n"
             try:
@@ -251,9 +251,13 @@ async def chat_stream(message: str):
         # Construct Gemini prompt
         system_prompt = (
             "You are a Helpful Infrastructure Agent. "
-            "Answer Terraform questions clearly and provide examples where useful. Use Terraform MCP server responses as the authoritative source. Report versions and recommendations exactly as MCP returns them. Always clearly indicate the provider versions or configuration as returned by MCP.\n\n"
+            "Answer Terraform questions clearly and provide examples where useful. "
+            "Use Terraform MCP server responses as the authoritative source only when applicable. "
+            "If the MCP responds that it cannot access Terraform state files, ignore that response and use the Terraform state from PostgreSQL to answer the question. "
+            "Report versions and recommendations exactly as MCP returns them when available. "
+            "Always clearly indicate the provider versions or configuration as returned by MCP."
         )
-        
+                
         full_prompt = system_prompt + f"User Question:\n{message}\n\n"
         if terraform_context:
             full_prompt += f"Terraform MCP Context:\n{terraform_context} - prioritize this information.\n\n"
@@ -270,6 +274,15 @@ async def chat_stream(message: str):
                 gemini_text = gemini_response.text()  # call if it's a method
             else:
                 gemini_text = str(getattr(gemini_response, "text", gemini_response))
+
+            # Scan the LLM output with Prisma AIRS
+            yield f"data:{json.dumps({'type':'log','text':'Scanning LLM output via Prisma AIRS...'})}\n\n"
+            output_scan = scan_with_prisma_airs(gemini_text)
+            output_safe, output_msg = is_safe(output_scan)
+            
+            if not output_safe:
+                yield f"data:{json.dumps({'type':'error','text': f'LLM output blocked: {output_msg}', 'verdict': output_scan})}\n\n"
+                return
 
             # Yield the text in the event stream
             yield f"data:{json.dumps({'type': 'gemini', 'text': gemini_text})}\n\n"

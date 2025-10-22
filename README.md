@@ -15,11 +15,11 @@ With this deployment pattern, teams gain a fully automated, secure, and scalable
 
 | Component                        | Purpose                            |
 | -------------------------------- | ---------------------------------- |
-| **AI Chatbot (FastAPI)**         | Gemini-based chatbot with built-in guardrails by Palo Alto Networks Prisma AIRS|
-| **AI Agent (FastAPI)**           | Gemini-based agent (helpful infrastructure assistant) leveraging Terraform MCP with built-in guardrails Prisma AIRS|
+| **Use case #1: AI Chatbot (FastAPI)**         | Gemini-based chatbot with built-in guardrails by Palo Alto Networks Prisma AIRS|
+| **Use case #2: AI Agent (FastAPI) on LangGraph, LangChain** | Gemini-based agent (helpful infrastructure assistant) leveraging Terraform MCP with built-in guardrails Prisma AIRS|
 | **Openshift**                    | Runs your apps as a pods             |
-| **HCP Vault Dedicated**          | Stores secrets in `kv-v2`          |
-| **Vault Secrets Operator (VSO)** | Pulls secrets into Openshift       |
+| **HCP Vault Dedicated**          | Stores secrets in `kv-v2`, generates **dynamic** database credentials          |
+| **Vault Secrets Operator (VSO)** | Pulls static and dynamic secrets into Openshift|
 | **Terraform**                    | Automates HCP Vault setup |
 
 ## Prerequisites
@@ -31,6 +31,7 @@ With this deployment pattern, teams gain a fully automated, secure, and scalable
 - Helm
 - Prisma AIRS API access + key (from Palo Alto Networks)
 - Gemini API key
+- psql (terminal-based front-end to PostgreSQL)
 
 ## Local Setup
 
@@ -122,6 +123,8 @@ docker buildx build --platform linux/amd64 -t ai-agent-openshift:latest .
 docker tag ai-agent-openshift:latest <route-hostname>/ai-chatbot/ai-agent-openshift:latest
 docker push <route-hostname>/ai-chatbot/ai-agent-openshift:latest
 ```
+
+Note: The Docker build uses buildx only for Apple Silicon (M1/M2) Macs to enable multi-platform builds. On other architectures, buildx is not required.
 
 ## Install Vault Secrets Operator (VSO)
 
@@ -290,6 +293,8 @@ The second app runs on /ai-agent.
 
 ## Troubleshooting
 
+### Verifying VSO
+
 Check if secret was synced:
 
 ```sh
@@ -305,6 +310,20 @@ Check deployment logs for VSO:
 ```sh
 oc logs deployment/vault-secrets-operator-controller-manager -n vault-secrets-operator-system
 ```
+### Verifying the Database
+
+If you encounter any database-related issues, you can check whether the fake data was successfully loaded into PostgreSQL.
+
+Connect to your RDS PostgreSQL instance using `psql`:
+
+```bash
+psql "host=your_rds_hostname port=5432 dbname=aiagentdb user=aiagent password=your_password sslmode=require"
+```
+Once connected, run 
+```bash
+ SELECT * FROM terraform_remote_state.states;
+ ```
+This will display all rows and help confirm that the fake data has been properly populated.
 
 ## Cleanup
 
