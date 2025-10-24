@@ -46,6 +46,7 @@ resource "aws_db_subnet_group" "ai_agent" {
   tags = {
     Name = "${random_pet.random.id}-ai-agent"
   }
+  depends_on = [module.vpc]
 }
 
 resource "aws_security_group" "rds" {
@@ -94,9 +95,13 @@ resource "aws_db_instance" "ai_agent" {
   parameter_group_name   = aws_db_parameter_group.ai_agent.name
   publicly_accessible    = true
   skip_final_snapshot    = true
+  depends_on = [
+    aws_db_subnet_group.ai_agent,
+    aws_security_group.rds
+  ]
 }
 
-# Fake Terraform state backend for demo
+# Fake Terraform backend for demo (fake Terraform state)
 resource "postgresql_database" "ai_agent_db" {
   provider = postgresql.bootstrap
   name                   = var.db_name
@@ -129,6 +134,7 @@ resource "null_resource" "create_table_and_load_fake_data" {
   provisioner "local-exec" {
     command = <<EOT
 bash -c 'psql "postgresql://${var.db_username}:${var.db_password}@${aws_db_instance.ai_agent.address}:5432/${var.db_name}" \
+-c "CREATE TABLE IF NOT EXISTS terraform_remote_state.states(id SERIAL PRIMARY KEY, name TEXT, data TEXT);" \
   -c "\\copy terraform_remote_state.states(id, name, data) FROM '\''${path.module}/fake_db_data.csv'\'' CSV HEADER;"'
 EOT
   }

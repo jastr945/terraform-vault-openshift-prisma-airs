@@ -1,6 +1,10 @@
 # terraform-vault-openshift-prisma-airs
 Secure, Terraform-deployed AI workloads on Openshift, with secrets managed via HCP Vault Dedicated and delivered using Vault Secrets Operator. Security guardrails provided by Prisma AIRS.
 
+This repo includes two example AI applications (a chatbot and an agent) deployed on Openshift with secrets injected from Vault. It integrates the Prisma AIRS API to scan prompts and model outputs for malicious behavior.
+
+> **Note:**  The steps in this README are intentionally detailed and verbose to serve as a tutorial and enhance the learning experience.
+
 ## Why This Matters
 
 In today’s fast-paced AI landscape, securely deploying and managing AI workloads is a critical challenge. Organizations need a solution that not only scales effortlessly but also ensures that sensitive data - like API keys and model secrets - is protected at every layer. This repository addresses that challenge by combining best-in-class tools for infrastructure automation, secrets management, and runtime security.
@@ -47,7 +51,7 @@ To stand up the basic infrastructure, a few credentials must be configured:
 
 1. Create an HCP account and follow the [authentication guide](https://registry.terraform.io/providers/hashicorp/hcp/latest/docs/guides/auth) to set up and retrieve your project ID and client secret.  
 
-13. Fill in all required credentials. Prisma AIRS requires API access; make sure you have a valid key. Refer to the [official Prisma AIRS documentation](https://docs.paloaltonetworks.com/ai-runtime-security/activation-and-onboarding/activate-your-ai-runtime-security-license/create-an-ai-instance-deployment-profile-in-csp) for setup details.  
+13. Fill in all required credentials. Prisma AIRS requires API access; make sure you have a valid key. Refer to the [official Prisma AIRS documentation](https://docs.paloaltonetworks.com/ai-runtime-security/activation-and-onboarding/activate-your-ai-runtime-security-license/create-an-ai-instance-deployment-profile-in-csp) for setup details. If you don’t have it, you can continue without it, but be aware that some failures may occur and the UI experience will be limited.
  
 1. Deploy with Terraform:  
    ```bash
@@ -61,6 +65,22 @@ To stand up the basic infrastructure, a few credentials must be configured:
 At the end of this setup, Terraform provisions the core infrastructure:
 - HCP Vault Dedicated cluster, roles, mounts, and secrets;
 - AWS RDS database storing fake Terraform backend data (state files).
+
+Learn about the benefits of Vault namespaces [here](https://developer.hashicorp.com/vault/tutorials/get-started-hcp-vault-dedicated/vault-namespaces). 
+
+Explore your newly provisioned Vault cluster in both UI and CLI. Notice two namespaces: `admin` (default) and `trusted-ai-secrets` (custom).
+- Go to the [HCP Console](https://portal.cloud.hashicorp.com).
+- Navigate to **Vault Dedicated** > your cluster. Log into your cluster and explore the namespaces.
+
+Optionally, you can log into the database and check if the data was loaded:
+```bash
+psql "host=your_rds_hostname port=5432 dbname=aiagentdb user=aiagent password=your_password sslmode=require"
+```
+Once connected, run 
+```bash
+ SELECT * FROM terraform_remote_state.states;
+ ```
+ This is out "fake" Terraform backend  - to be used by the infrastructure agent we're about to deploy.
 
 ## Openshift setup
 
@@ -79,15 +99,15 @@ Log into the cluster via CLI using the `oc` tool.
 Create a new project for our app:
 
 ```sh
-oc new-project ai-chatbot
+oc new-project trusted-ai
 ```
 
-## Dockerize the app
+## Dockerize both apps
 
-Build a Docker image and push it to the OpenShift Integrated Image Registry:
+Build Docker images and push them to the OpenShift Integrated Image Registry:
 
 ```sh
-# Navigate to the app directory
+# Navigate to the first app directory
 cd ../apps/ai-chatbot
 
 # Check if the registry route exists
@@ -106,8 +126,8 @@ docker login -u $(oc whoami) -p $(oc whoami -t) <route-hostname>
 docker buildx build --platform linux/amd64 -t ai-chatbot-openshift:latest .
 
 # Tag & push your image
-docker tag ai-chatbot-openshift:latest <route-hostname>/ai-chatbot/ai-chatbot-openshift:latest
-docker push <route-hostname>/ai-chatbot/ai-chatbot-openshift:latest
+docker tag ai-chatbot-openshift:latest <route-hostname>/trusted-ai/ai-chatbot-openshift:latest
+docker push <route-hostname>/trusted-ai/ai-chatbot-openshift:latest
 ```
 
 For the second agent app,
@@ -120,8 +140,8 @@ cd ../ai-agent
 docker buildx build --platform linux/amd64 -t ai-agent-openshift:latest .
 
 # Tag & push your image
-docker tag ai-agent-openshift:latest <route-hostname>/ai-chatbot/ai-agent-openshift:latest
-docker push <route-hostname>/ai-chatbot/ai-agent-openshift:latest
+docker tag ai-agent-openshift:latest <route-hostname>/trusted-ai/ai-agent-openshift:latest
+docker push <route-hostname>/trusted-ai/ai-agent-openshift:latest
 ```
 
 Note: The Docker build uses buildx only for Apple Silicon (M1/M2) Macs to enable multi-platform builds. On other architectures, buildx is not required.
@@ -157,7 +177,6 @@ oc get secret vault-cacert -n vault-secrets-operator-system -o yaml
 Copy `vault-operator-values-sample.yaml` and rename it to `vault-operator-values.yaml`.
  ```sh
 cp secrets.auto.tfvars.sample secrets.auto.tfvars
-
 ```
 Fill out the Vault url and domain in `vault-operator-values.yaml` and install VSO:
 
@@ -178,7 +197,7 @@ oc describe vaultconnection default -n vault-secrets-operator-system
 
 ## Apply Kubernetes Manifests
 
-This manifest configures Kubernetes resources that allow the AI Chatbot to securely authenticate with HashiCorp Vault and retrieve secrets. It creates service accounts, RBAC permissions, and Vault custom resources to sync secrets from Vault into Kubernetes, with automatic updates and deployment restarts when secrets change.
+This manifest configures Kubernetes resources that allow both apps to securely authenticate with HashiCorp Vault and retrieve secrets. It creates service accounts, RBAC permissions, and Vault custom resources to sync secrets from Vault into Kubernetes, with automatic updates and deployment restarts when secrets change.
 
 ```sh
 oc apply -f vault_auth.yaml
@@ -189,10 +208,10 @@ oc apply -f vault_auth.yaml
 Export required values as environment variables:
 
 ```sh
-export SA_TOKEN=$(oc get secret vault-auth-secret -n ai-chatbot \
+export SA_TOKEN=$(oc get secret vault-auth-secret -n trusted-ai \
   -o jsonpath="{.data.token}" | base64 --decode)
 
-export KUBERNETES_CA=$(oc get secret vault-auth-secret -n ai-chatbot \
+export KUBERNETES_CA=$(oc get secret vault-auth-secret -n trusted-ai \
   -o jsonpath="{.data['ca\.crt']}" | base64 --decode)
 
 export KUBERNETES_URL=$(oc config view --minify \
@@ -212,7 +231,7 @@ vault login
 Paste your token when prompted.
 
 ```sh
-vault write -namespace="admin" auth/kubernetes/config \
+vault write -namespace="admin/trusted-ai-secrets" auth/kubernetes/config \
   use_annotations_as_alias_metadata=true \
   token_reviewer_jwt="${SA_TOKEN}" \
   kubernetes_host="${KUBERNETES_URL}" \
@@ -221,11 +240,13 @@ vault write -namespace="admin" auth/kubernetes/config \
 
 By authenticating Kubernetes Service Accounts to Vault, we establish a trusted identity that Vault can use to map to specific roles and policies. Once this setup is done, applications in Kubernetes will be able to authenticate to Vault transparently, without needing admin privileges themselves.
 
+Why is Vault cluster admin token used in this step, and not namespace-level token? Writing to auth/kubernetes/config is considered a cluster-level operation (or at least requires permission to write to the auth mount), which is denied for namespace-scoped tokens.
+
 ---
 
 ## RBAC for Vault Service Account
 
-This manifest grants the `vault-sa` service account in the `ai-chatbot` namespace read-only permissions on Kubernetes ServiceAccounts. It defines a `ClusterRole` with `get` and `list` verbs for ServiceAccounts and binds it to `vault-sa` through a `ClusterRoleBinding`.
+This manifest grants the `vault-sa` service account in the `trusted-ai` namespace read-only permissions on Kubernetes ServiceAccounts. It defines a `ClusterRole` with `get` and `list` verbs for ServiceAccounts and binds it to `vault-sa` through a `ClusterRoleBinding`.
 
 ```sh
 oc apply -f vault-sa-rbac.yaml
@@ -233,30 +254,38 @@ oc apply -f vault-sa-rbac.yaml
 
 ---
 
-## Test Vault Access
+## Test Vault Access [OPTIONAL]
+
+This step is entirely optional (just for checking and learning).
+
+For this step, you'll need the namespace token, not the cluster admin token. You can retrieve it in your terminal from terraform outputs:
 
 ```sh
-export APP_TOKEN=$(vault write -namespace="admin" -field="token" \
+terraform -chdir=../terraform output -raw vault_trusted_ai_namespace_token
+```
+
+Is is the namespace-specific token. Use it to access our trusted-ai-secrets namespace in HCP Vault.
+
+```sh
+export VAULT_NAMESPACE=admin/trusted-ai-secrets
+vault login
+```
+Paste your namespace token when prompted. Now run:
+
+```sh
+export APP_TOKEN=$(vault write -namespace="admin/trusted-ai-secrets" -field="token" \
   auth/kubernetes/login \
   role=ai-chatbot-role \
-  jwt=$(oc create token -n ai-chatbot chatbot))
+  jwt=$(kubectl create token -n trusted-ai chatbot))
 
 VAULT_TOKEN=$APP_TOKEN vault kv get \
-  -namespace="admin" \
+  -namespace="admin/trusted-ai-secrets" \
   -mount=kv chatbot
 ```
 
 You should see the secrets stored in Vault for the chatbot app.
 
-Now test if the role also correctly generates dynamic database credentials:
-
-```sh
-
-VAULT_TOKEN=$APP_TOKEN vault read \
-  -namespace="admin" \
-  postgres/creds/ai-agent-app
-```
-
+Why is namespace-level token used for this step? You are logging in to Vault via the Kubernetes auth method. The role=`ai-chatbot-role` is defined inside the namespace `admin/trusted-ai-secrets`. Vault generates a token scoped to that namespace (`admin/trusted-ai-secrets`) with the policies attached to that role. This is why you need the namespace-level token: the login is not at the cluster root level; it’s scoped to that namespace.
 
 ## Deploy the Apps
 
@@ -269,7 +298,7 @@ This deployment should deploy use case #1 (chatbot), use case #2 (agent - helpfu
 Check if pods are running:
 
 ```sh
-oc get pods -n ai-chatbot
+oc get pods -n trusted-ai
 ```
 
 ## Access the App
@@ -278,7 +307,7 @@ Use case #1 (chatbot)
 Check the route hostname for ai-chatbot :
 
 ```sh
-oc get route ai-chatbot -n ai-chatbot
+oc get route ai-chatbot -n trusted-ai
 ```
 
 Open the `HOST/PORT` in your browser. Use case #1 Chatbot runs on /ai-chatbot.
@@ -286,7 +315,7 @@ Open the `HOST/PORT` in your browser. Use case #1 Chatbot runs on /ai-chatbot.
 Use case #2 
 
 ```sh
-oc get route ai-agent -n ai-chatbot
+oc get route ai-agent -n trusted-ai
 ```
 
 The second app runs on /ai-agent.
@@ -298,11 +327,11 @@ The second app runs on /ai-agent.
 Check if secret was synced:
 
 ```sh
-oc get secret chatbotkv -n ai-chatbot
+oc get secret chatbotkv -n trusted-ai
 ```
 
 ```sh
-oc get secret agentkv -n ai-chatbot
+oc get secret agentkv -n trusted-ai
 ```
 
 Check deployment logs for VSO:
@@ -330,7 +359,7 @@ This will display all rows and help confirm that the fake data has been properly
 Destroy all infra by running:
 
 ```sh
-oc delete namespace ai-chatbot
+oc delete namespace trusted-ai
 ```
 
 ```sh

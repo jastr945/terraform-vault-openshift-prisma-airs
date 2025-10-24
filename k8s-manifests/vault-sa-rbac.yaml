@@ -19,4 +19,4 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: vault-sa
-    namespace: ai-chatbot
+    namespace: trusted-ai

@@ -13,6 +13,7 @@ from pydantic import BaseModel
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 PRISMA_AIRS_API_KEY = os.getenv("PRISMA_AIRS_API_KEY")
 PRISMA_AIRS_PROFILE = os.getenv("PRISMA_AIRS_PROFILE")
+CHATBOT_WELCOME_MESSAGE = os.getenv("CHATBOT_WELCOME_MESSAGE")
 
 if not GEMINI_API_KEY or not PRISMA_AIRS_API_KEY or not PRISMA_AIRS_PROFILE :
     raise EnvironmentError("GEMINI_API_KEY and PRISMA_AIRS_API_KEY and PRISMA_AIRS_PROFILE must be set.")
@@ -118,9 +119,9 @@ async def chat(prompt: Prompt):
         "output_verdict": output_scan
     }
 
-@app.get("/token-suffix")
-def token_suffix():
-    return {"suffix": GEMINI_API_KEY[-3:]}
+@app.get("/welcome-message")
+def welcome_message():
+    return {"message": CHATBOT_WELCOME_MESSAGE}
 
 @app.get("/healthcheck")
 def healthcheck():

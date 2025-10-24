@@ -1,3 +1,7 @@
+variable "region" {
+  description = "AWS region to deploy resources in"
+}
+
 variable "db_name" {
   description = "Unique name to assign to RDS instance"
 }
@@ -7,6 +11,6 @@ variable "db_username" {
 }
 
 variable "db_password" {
-  description = "RDS root user password (careful with special chars - not everything is accepted!)"
+  description = "RDS root user password"
   sensitive   = true
 }
