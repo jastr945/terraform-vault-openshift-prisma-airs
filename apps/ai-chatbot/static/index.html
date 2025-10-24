@@ -78,7 +78,7 @@
 <body>
   <h1>&#35;1: Static Credential Example</h1>
   <h2>AI Chatbot with Prisma AIRS protection</h2>
-  <h4>Last 3 digits of the LLM token: <span id="token-suffix">Loading...</span></h4>
+  <h4>Welcome message: <span id="welcome-message">Loading...</span></h4>
   <div id="chat"></div>
   <input type="text" id="input" placeholder="Type your message..." style="width: 80%;" />
   <button onclick="sendMessage()">Send</button>
@@ -112,13 +112,13 @@
     return `<div style="color:${color}; font-weight:bold;">${text}</div>`;
   }
 
-  async function fetchTokenSuffix() {
+  async function fetchWelcomeMessage() {
     try {
-      const res = await fetch("/ai-chatbot/token-suffix");
+      const res = await fetch("/ai-chatbot/welcome-message");
       const data = await res.json();
-      document.getElementById("token-suffix").textContent = data.suffix;
+      document.getElementById("welcome-message").textContent = data.message;
     } catch (err) {
-      document.getElementById("token-suffix").textContent = "Error";
+      document.getElementById("welcome-message").textContent = "Error";
     }
   }
 
@@ -197,7 +197,7 @@
       chat.innerHTML += `<div class="msg bot" style="color: red;">Error: ${err.message}</div>`;
     }
   }
-  fetchTokenSuffix();
+  fetchWelcomeMessage();
 </script>
 
 </body>

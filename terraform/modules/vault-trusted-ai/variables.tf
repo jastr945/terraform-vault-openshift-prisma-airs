@@ -1,0 +1,11 @@
+variable "gemini_api_key" {}
+variable "prisma_airs_api_key" {}
+variable "prisma_airs_profile" {}
+variable "db_port" {}
+variable "db_name" {}
+variable "db_username" {}
+variable "db_password" {}
+variable "db_host" {}
+variable "trusted_ai_namespace_path" {}
+variable "trusted_ai_namespace_token" {}
+variable "vault_addr" {}

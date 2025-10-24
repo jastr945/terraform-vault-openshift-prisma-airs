@@ -16,7 +16,7 @@ variable "hvn_cloud_provider" {
   default     = "aws"
 }
 variable "vault_cluster_id" {
-  default = "vault-dedicated"
+  default = "vault-dedicated-openshift"
 }
 variable "vault_namespace" {
   default = "admin"
@@ -32,6 +32,11 @@ variable "prisma_airs_api_key" {
 variable "prisma_airs_profile" {
   description = "Prisma AIRS deployment profile"
   type = string
+}
+variable "region" {
+  description = "AWS region"
+  type        = string
+  default = "us-west-2"
 }
 variable "db_name" {
   description = "Unique name to assign to RDS instance"
