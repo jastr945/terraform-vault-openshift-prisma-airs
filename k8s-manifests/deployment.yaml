@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: ai-chatbot
-          image: image-registry.openshift-image-registry.svc:5000/ai-chatbot/ai-chatbot-openshift:latest
+          image: image-registry.openshift-image-registry.svc:5000/trusted-ai/ai-chatbot-openshift:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
@@ -42,6 +42,11 @@ spec:
                 secretKeyRef:
                   name: chatbotkv
                   key: PRISMA_AIRS_PROFILE
+            - name: CHATBOT_WELCOME_MESSAGE
+              valueFrom:
+                secretKeyRef:
+                  name: chatbotkv
+                  key: CHATBOT_WELCOME_MESSAGE
           resources:
             requests:
               memory: "256Mi"
@@ -121,13 +126,13 @@ spec:
     spec:
       containers:
         - name: ai-agent
-          image: image-registry.openshift-image-registry.svc:5000/ai-chatbot/ai-agent-openshift:latest
+          image: image-registry.openshift-image-registry.svc:5000/trusted-ai/ai-agent-openshift:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
           env:
             - name: MCP_HTTP_URL
-              value: "http://terraform-mcp.ai-chatbot.svc.cluster.local:8080/mcp"
+              value: "http://terraform-mcp.trusted-ai.svc.cluster.local:8080/mcp"
             - name: GEMINI_API_KEY
               valueFrom:
                 secretKeyRef:

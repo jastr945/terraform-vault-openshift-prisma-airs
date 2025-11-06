@@ -158,7 +158,7 @@ cd ../../k8s-manifests
 oc create namespace vault-secrets-operator-system
 ```
 
-Create a Vault CA certificate secret:
+Create a Vault CA certificate secret (insert your Vault cluster public address into the command below):
 
 ```sh
 openssl s_client -showcerts -connect vault.example.com:8200 </dev/null 2>/dev/null | openssl x509 -outform PEM > vault-ca.pem
@@ -176,7 +176,7 @@ oc get secret vault-cacert -n vault-secrets-operator-system -o yaml
 
 Copy `vault-operator-values-sample.yaml` and rename it to `vault-operator-values.yaml`.
  ```sh
-cp secrets.auto.tfvars.sample secrets.auto.tfvars
+cp vault-operator-values-sample.yaml vault-operator-values.yaml
 ```
 Fill out the Vault url and domain in `vault-operator-values.yaml` and install VSO:
 
